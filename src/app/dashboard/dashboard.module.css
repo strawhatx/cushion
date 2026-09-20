@@ -1,0 +1,183 @@
+.page {
+  min-height: 100dvh;
+  background: #0b0b0c;
+  color: #f4f4f5;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #26262a;
+}
+
+.mark {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #8b8b93;
+}
+
+.signOutButton {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #33333a;
+  background: transparent;
+  color: #d4d4d8;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.signOutButton:hover {
+  background: #1c1c1f;
+}
+
+.wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+.wrap h1 {
+  font-size: 24px;
+  margin: 0 0 8px;
+}
+
+.summary {
+  color: #b4b4bb;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 32px;
+}
+
+.errorBanner {
+  background: #2a1616;
+  border: 1px solid #5c2626;
+  color: #ffb4b4;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.empty {
+  color: #8b8b93;
+  font-size: 14px;
+}
+
+.daySection {
+  margin-bottom: 36px;
+}
+
+.dayLabel {
+  font-size: 15px;
+  font-weight: 600;
+  color: #d4d4d8;
+  margin: 0 0 14px;
+}
+
+.timeline {
+  position: relative;
+}
+
+.eventRow {
+  display: flex;
+  gap: 14px;
+}
+
+.node {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: #52525b;
+}
+
+.eventContent {
+  padding-bottom: 4px;
+}
+
+.eventTime {
+  font-size: 12px;
+  color: #8b8b93;
+}
+
+.eventTitle {
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.eventLocation {
+  font-size: 13px;
+  color: #a1a1aa;
+  margin-top: 2px;
+}
+
+.connector {
+  display: flex;
+  gap: 14px;
+  margin: 4px 0;
+}
+
+.connectorRail {
+  flex: 0 0 auto;
+  width: 10px;
+  min-height: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.connectorRail::before {
+  content: "";
+  width: 2px;
+  align-self: stretch;
+  background: #33333a;
+}
+
+.connectorContent {
+  font-size: 13px;
+  color: #a1a1aa;
+  padding: 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.connectorContentMuted {
+  font-size: 12px;
+  color: #63636b;
+  padding: 6px 0;
+  font-style: italic;
+}
+
+.connectorOk .connectorContent {
+  color: #86efac;
+}
+
+.connectorConflict {
+  background: #2a1616;
+  border: 1px solid #5c2626;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 6px 0;
+}
+
+.connectorConflict .connectorContent {
+  color: #ffb4b4;
+  font-weight: 500;
+}
+
+.connectorConflict .connectorRail {
+  display: none;
+}
+
+.warningIcon {
+  color: #ff6767;
+  font-size: 15px;
+}

@@ -51,7 +51,10 @@ export default function Home() {
       <div className={styles.wrap}>
         <header className={styles.topBar}>
           <div className={styles.mark}>CUSHION</div>
-          <button className={styles.themeButton} onClick={() => setDarkMode(!darkMode)} aria-label="Toggle theme">{darkMode ? "☀" : "◐"}</button>
+          <div className={styles.topBarActions}>
+            <a className={styles.signInLink} href="/login">Sign in</a>
+            <button className={styles.themeButton} onClick={() => setDarkMode(!darkMode)} aria-label="Toggle theme">{darkMode ? "☀" : "◐"}</button>
+          </div>
         </header>
         <main>
           <section className={styles.hero}>
