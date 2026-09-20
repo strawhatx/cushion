@@ -10,7 +10,6 @@ export type TravelLeg = {
   availableMinutes: number;
   neededMinutes: number;
   travelMinutes: number;
-  trafficAware: boolean;
   isConflict: boolean;
 };
 
@@ -57,7 +56,7 @@ export async function computeTravelLegs(events: CalendarEvent[]): Promise<Travel
     candidatePairs.map(async ([from, to]) => {
       const availableMinutes = Math.round((to.start!.getTime() - from.end!.getTime()) / 60000);
 
-      const travel = await getDrivingTravelTime(from.location!, to.location!, from.end!);
+      const travel = await getDrivingTravelTime(from.location!, to.location!);
       if (!travel) return null;
 
       const neededMinutes = travel.minutes + TRAVEL_BUFFER_MINUTES;
@@ -68,7 +67,6 @@ export async function computeTravelLegs(events: CalendarEvent[]): Promise<Travel
         availableMinutes,
         neededMinutes,
         travelMinutes: travel.minutes,
-        trafficAware: travel.trafficAware,
         isConflict: availableMinutes < neededMinutes,
       };
       return leg;

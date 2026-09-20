@@ -1,85 +1,101 @@
 export type TravelTimeResult = {
   minutes: number;
-  trafficAware: boolean;
 };
 
-type DistanceMatrixElement = {
-  status: string;
-  duration?: { value: number };
-  duration_in_traffic?: { value: number };
-};
+type Coordinates = [lon: number, lat: number];
 
-type DistanceMatrixResponse = {
-  status: string;
-  rows?: { elements: DistanceMatrixElement[] }[];
-};
+// Free-tier ORS geocoding has no documented per-key limit, but addresses repeat
+// a lot across a week of meetings (same office, same client site), so cache
+// resolved coordinates for the life of the server process.
+const geocodeCache = new Map<string, Coordinates | null>();
 
-/**
- * Real driving travel time between two addresses, traffic-aware when the
- * departure time is in the future. Returns null whenever the trip can't be
- * resolved (bad/ungeocodable address, API error, etc.) so callers can skip
- * the conflict check for that leg instead of erroring.
- */
-export async function getDrivingTravelTime(
-  origin: string,
-  destination: string,
-  departureTime: Date
-): Promise<TravelTimeResult | null> {
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+async function geocode(address: string): Promise<Coordinates | null> {
+  const cacheKey = address.trim().toLowerCase();
+  if (geocodeCache.has(cacheKey)) return geocodeCache.get(cacheKey)!;
+
+  const apiKey = process.env.OPENROUTESERVICE_API_KEY;
   if (!apiKey) {
-    console.error("[travel-time] GOOGLE_MAPS_API_KEY is not set");
+    console.error("[travel-time] OPENROUTESERVICE_API_KEY is not set");
     return null;
   }
 
-  // Distance Matrix rejects departure times in the past; "now" is the floor.
-  const departureSeconds = Math.max(
-    Math.floor(departureTime.getTime() / 1000),
-    Math.floor(Date.now() / 1000)
-  );
-
   const params = new URLSearchParams({
-    origins: origin,
-    destinations: destination,
-    mode: "driving",
-    units: "imperial",
-    departure_time: String(departureSeconds),
-    traffic_model: "best_guess",
-    key: apiKey,
+    api_key: apiKey,
+    text: address,
+    size: "1",
   });
+
+  let coordinates: Coordinates | null = null;
+  try {
+    const response = await fetch(`https://api.openrouteservice.org/geocode/search?${params.toString()}`, {
+      cache: "no-store",
+    });
+    if (response.ok) {
+      const data = await response.json();
+      const first = data.features?.[0];
+      if (first?.geometry?.coordinates) {
+        coordinates = first.geometry.coordinates as Coordinates;
+      }
+    } else {
+      console.error("[travel-time] geocoding failed", response.status, await response.text());
+    }
+  } catch (error) {
+    console.error("[travel-time] geocoding request failed", error);
+  }
+
+  geocodeCache.set(cacheKey, coordinates);
+  return coordinates;
+}
+
+/**
+ * Real driving travel time between two addresses, via OpenRouteService
+ * (geocode both addresses, then a 2x2 matrix request for the driving leg).
+ * Returns null whenever the trip can't be resolved (bad/ungeocodable address,
+ * API error, etc.) so callers can skip the conflict check for that leg
+ * instead of erroring.
+ *
+ * Note: unlike Google's Distance Matrix, ORS's free routing profiles don't
+ * model live/time-of-day traffic — this is a typical-conditions estimate.
+ */
+export async function getDrivingTravelTime(origin: string, destination: string): Promise<TravelTimeResult | null> {
+  const apiKey = process.env.OPENROUTESERVICE_API_KEY;
+  if (!apiKey) {
+    console.error("[travel-time] OPENROUTESERVICE_API_KEY is not set");
+    return null;
+  }
+
+  const [originCoords, destinationCoords] = await Promise.all([geocode(origin), geocode(destination)]);
+  if (!originCoords || !destinationCoords) return null;
 
   let response: Response;
   try {
-    response = await fetch(
-      `https://maps.googleapis.com/maps/api/distancematrix/json?${params.toString()}`,
-      { cache: "no-store" }
-    );
+    response = await fetch("https://api.openrouteservice.org/v2/matrix/driving-car", {
+      method: "POST",
+      headers: {
+        Authorization: apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        locations: [originCoords, destinationCoords],
+        sources: [0],
+        destinations: [1],
+        metrics: ["duration"],
+      }),
+      cache: "no-store",
+    });
   } catch (error) {
-    console.error("[travel-time] request failed", error);
+    console.error("[travel-time] matrix request failed", error);
     return null;
   }
 
   if (!response.ok) {
-    console.error("[travel-time] non-OK response", response.status);
+    console.error("[travel-time] matrix non-OK response", response.status, await response.text());
     return null;
   }
 
-  const data = (await response.json()) as DistanceMatrixResponse;
-  if (data.status !== "OK") {
-    console.error("[travel-time] API status", data.status);
-    return null;
-  }
+  const data = await response.json();
+  const seconds = data.durations?.[0]?.[0];
+  if (typeof seconds !== "number") return null;
 
-  const element = data.rows?.[0]?.elements?.[0];
-  if (!element || element.status !== "OK") {
-    // Most commonly NOT_FOUND / ZERO_RESULTS for an address that can't be geocoded.
-    return null;
-  }
-
-  const seconds = element.duration_in_traffic?.value ?? element.duration?.value;
-  if (seconds == null) return null;
-
-  return {
-    minutes: Math.ceil(seconds / 60),
-    trafficAware: element.duration_in_traffic != null,
-  };
+  return { minutes: Math.ceil(seconds / 60) };
 }

@@ -126,7 +126,7 @@ function LegConnector({ leg }: { leg: TravelLeg }) {
             <span className={styles.warningIcon} aria-hidden="true">⚠</span>
             <span>
               <strong>{leg.neededMinutes} min needed</strong>, only {leg.availableMinutes} min available
-              {" "}({leg.travelMinutes} min drive{leg.trafficAware ? ", live traffic" : ""})
+              {" "}({leg.travelMinutes} min drive)
             </span>
           </>
         ) : (
